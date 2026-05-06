@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>時光探險家：星際航行版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #f0f9ff;
+            margin: 0;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 簡報滑動動畫 */
+        .slide-container {
+            width: 100vw; height: 100vh; position: fixed;
+            top: 0; left: 0; z-index: 100; background: #0f172a;
+            transition: transform 0.8s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.6s ease;
+            padding: 40px; box-sizing: border-box;
+        }
+
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+        .slide.next { transform: translateX(100%); }
+        .slide.prev { transform: translateX(-100%); }
+
+        .nav-btn {
+            position: fixed; bottom: 30px; z-index: 110;
+            background: rgba(51, 65, 85, 0.9); border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white; padding: 12px 24px; border-radius: 16px;
+            cursor: pointer; font-weight: bold; backdrop-filter: blur(8px);
+        }
+        #prevBtn { right: 160px; }
+        #nextBtn { right: 40px; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .placed-task {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 100%;
+        }
+
+        .drop-zone {
+            min-height: 64px; border: 2px dashed #e2e8f0; border-radius: 1.25rem;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.5); cursor: pointer;
+        }
+        .drop-zone:active { background: #f1f5f9; }
+        .drop-zone.filled { border: 2px solid #cbd5e1; background: white; cursor: default; }
+
+        .task-item { cursor: pointer; transition: all 0.2s; }
+        .selected-task { 
+            ring: 4px; 
+            --tw-ring-color: #6366f1; 
+            transform: translateY(-4px); 
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        }
+
+        .portal-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white; padding: 20px 50px; border-radius: 40px;
+            font-size: 24px; font-weight: 900; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 引導簡報區 -->
+    <div class="slide-container" id="slideContainer">
+        <!-- 第一頁 -->
+        <div class="slide active">
+            <div class="text-center">
+                <div class="text-9xl mb-8 animate-bounce">👨‍🚀</div>
+                <h1 class="text-6xl font-black text-white mb-4">嘿！探險家</h1>
+                <p class="text-2xl text-slate-400 font-bold">歡迎來到 16:00 點後的未知星系</p>
+                <p class="mt-12 text-slate-500 font-bold italic">「這趟旅程，由你決定航向。」</p>
+            </div>
+        </div>
+
+        <!-- 第二頁：文字清晰度修復版 -->
+        <div class="slide bg-slate-50">
+            <div class="max-w-4xl w-full">
+                <div class="text-center mb-12">
+                    <h2 class="text-5xl font-black text-slate-800 mb-2">任務行前說明</h2>
+                    <p class="text-indigo-600 text-xl font-black">如何完成這份精準地圖？</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="p-10 rounded-[3rem] bg-white border-4 border-amber-100 shadow-lg text-center">
+                        <div class="text-6xl mb-4">🎯</div>
+                        <h3 class="text-3xl font-black text-amber-600 mb-2">點擊部署</h3>
+                        <p class="text-slate-600 font-bold text-xl leading-relaxed">點一下左側的方塊，再點一下格子，就能完成部署！</p>
+                    </div>
+                    <div class="p-10 rounded-[3rem] bg-white border-4 border-indigo-100 shadow-lg text-center">
+                        <div class="text-6xl mb-4">🛸</div>
+                        <h3 class="text-3xl font-black text-indigo-600 mb-2">勇敢說理由</h3>
+                        <p class="text-slate-600 font-bold text-xl leading-relaxed">練習表達「為什麼」要這樣安排時間。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第三頁 -->
+        <div class="slide bg-slate-900">
+            <div class="text-center">
+                <div class="mb-8 text-9xl">✨</div>
+                <h2 class="text-5xl font-black text-white mb-4">準備好啟航了嗎？</h2>
+                <p class="text-slate-400 mb-10 text-xl font-bold">別忘了，21:30 必須準時降落睡眠星系喔！</p>
+                <button onclick="switchToPlanner()" class="portal-btn active:scale-95 transition-all">
+                    繪製我的航線 ➔
+                </button>
+            </div>
+        </div>
+
+        <button class="nav-btn" id="prevBtn" style="display:none">上一頁</button>
+        <button class="nav-btn" id="nextBtn">下一頁</button>
+    </div>
+
+    <!-- 2. 實作區域 -->
+    <div class="planner-container hidden p-4 md:p-10 max-w-6xl mx-auto" id="plannerContainer">
+        <header class="flex justify-between items-end mb-8">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800">星際時間地圖</h1>
+                <p class="text-slate-500 font-bold italic">「每一格都是你專屬的探險計畫。」</p>
+            </div>
+            <button onclick="location.reload()" class="bg-white p-3 rounded-xl shadow-sm text-red-400 font-bold active:scale-90 transition-transform">
+                🗑️ 重新導航
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- 任務選單 -->
+            <div class="lg:col-span-4">
+                <div class="bg-white p-6 rounded-[2.5rem] shadow-xl sticky top-8">
+                    <h3 class="text-xs font-black text-indigo-400 mb-6 uppercase tracking-widest">任務能量塊</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-1 gap-3 h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl text-center font-black text-amber-800">📝 寫功課</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl text-center font-black text-indigo-800">🎹 練才藝</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center font-black text-blue-800">🚿 洗香香</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl text-center font-black text-orange-800">🍱 吃晚餐</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-green-50 border-2 border-green-200 rounded-2xl text-center font-black text-green-800">🎮 自由時間</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-purple-50 border-2 border-purple-200 rounded-2xl text-center font-black text-purple-800">📖 看些書</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-pink-50 border-2 border-pink-200 rounded-2xl text-center font-black text-pink-800">🧹 幫忙家事</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-teal-50 border-2 border-teal-200 rounded-2xl text-center font-black text-teal-800">😴 小睡片刻</div>
+                        <div onclick="selectTask(this)" class="task-item p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center font-black text-slate-800">☁️ 發呆充電</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 時間軸 (一小時一格) -->
+            <div class="lg:col-span-8">
+                <div class="bg-white p-6 md:p-10 rounded-[3rem] shadow-xl space-y-4" id="timeSlots"></div>
+                
+                <div class="p-6 bg-slate-800 rounded-3xl mt-4 flex justify-between items-center text-white shadow-lg">
+                    <span class="font-black text-lg">21:30</span>
+                    <span class="font-black text-indigo-300">🌙 降落休息星系</span>
+                </div>
+
+                <button onclick="showLogBuilder()" class="w-full mt-8 bg-indigo-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl shadow-indigo-100 active:scale-95 transition-all">
+                    準備進行口說練習 ➔
+                </button>
+
+                <div id="logSection" class="mt-10 hidden bg-indigo-50 p-8 rounded-[3rem] border-4 border-indigo-200">
+                    <h3 class="text-2xl font-black text-indigo-900 mb-6">📢 探險者練習日誌：</h3>
+                    <div id="logContainer" class="space-y-4"></div>
+                    <button onclick="copyLog()" class="w-full mt-8 bg-slate-800 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-slate-700 transition-colors">
+                        點此完成冒險日誌記錄
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化時間格 (一小時一格)[cite: 1]
+        const slotContainer = document.getElementById('timeSlots');
+        for (let h = 16; h <= 21; h++) {
+            const time = `${h}:00`;
+            const row = document.createElement('div');
+            row.className = "flex items-center gap-4";
+            row.innerHTML = `
+                <span class="w-20 text-right font-black text-slate-400 text-lg">${time}</span>
+                <div class="drop-zone flex-1" onclick="handlePlace(this)" data-time="${time}">
+                    <span class="text-slate-200 text-xs font-bold pointer-events-none">等待部署...</span>
+                </div>
+            `;
+            slotContainer.appendChild(row);
+        }
+
+        // 簡報邏輯[cite: 1]
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        function updateSlides() {
+            slides.forEach((s, i) => {
+                s.className = 'slide';
+                if (i === currentSlide) s.classList.add('active');
+                else if (i < currentSlide) s.classList.add('prev');
+                else s.classList.add('next');
+            });
+            document.getElementById('prevBtn').style.display = currentSlide === 0 ? 'none' : 'block';
+            document.getElementById('nextBtn').style.display = currentSlide === slides.length - 1 ? 'none' : 'block';
+        }
+        document.getElementById('nextBtn').onclick = () => { currentSlide++; updateSlides(); };
+        document.getElementById('prevBtn').onclick = () => { currentSlide--; updateSlides(); };
+
+        function switchToPlanner() {
+            document.getElementById('slideContainer').style.transform = 'translateY(-100%)';
+            setTimeout(() => { document.getElementById('plannerContainer').classList.remove('hidden'); }, 400);
+        }
+
+        // 點擊放置核心邏輯[cite: 1]
+        let selectedTaskEl = null;
+
+        function selectTask(el) {
+            document.querySelectorAll('.task-item').forEach(i => i.classList.remove('selected-task'));
+            el.classList.add('selected-task');
+            selectedTaskEl = el;
+        }
+
+        function handlePlace(zone) {
+            if (selectedTaskEl) {
+                const clone = selectedTaskEl.cloneNode(true);
+                clone.classList.remove('selected-task', 'p-4');
+                clone.classList.add('placed-task', 'p-3', 'text-sm');
+                clone.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    zone.innerHTML = '<span class="text-slate-200 text-xs font-bold pointer-events-none">等待部署...</span>'; 
+                    zone.classList.remove('filled');
+                };
+                
+                zone.innerHTML = '';
+                zone.appendChild(clone);
+                zone.classList.add('filled');
+            } else {
+                alert("請先點選左邊的一個「能量塊」！");
+            }
+        }
+
+        // 生成練習日誌[cite: 1]
+        function showLogBuilder() {
+            const zones = document.querySelectorAll('.drop-zone.filled');
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            if(zones.length === 0) return alert('地圖還沒規劃任何任務喔！');
+
+            zones.forEach(z => {
+                const task = z.innerText.split('\n')[0].trim();
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-2xl flex flex-wrap items-center gap-2 border-l-8 border-indigo-500 shadow-sm";
+                div.innerHTML = `
+                    <span class="font-bold">在 ${z.dataset.time}，我要去「${task}」，</span>
+                    <span class="text-slate-400">因為我</span>
+                    <input type="text" class="flex-1 border-b-2 border-slate-100 outline-none font-bold italic text-indigo-600" placeholder=" (想變厲害、想休息一下...) ">
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('logSection').classList.remove('hidden');
+            document.getElementById('logSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyLog() {
+            let text = "🛸 我的星際探險日誌：\n";
+            document.querySelectorAll('#logContainer div').forEach(row => {
+                const base = row.querySelector('span').innerText;
+                const reason = row.querySelector('input').value || "這是我的探險計畫";
+                text += `• ${base}${reason}\n`;
+            });
+            text += "\n我將於 21:30 準時降落。";
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('button[onclick="copyLog()"]');
+                const originalText = btn.innerText;
+                btn.innerText = "✅ 已成功記錄日誌！";
+                setTimeout(() => { btn.innerText = originalText; }, 2000);
+            });
+        }
+
+        updateSlides();
+    </script>
+</body>
+</html>
